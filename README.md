@@ -1,6 +1,5 @@
 Simple IMDG service for Ozon Fintech internship
-
-![Github CI/CD](https://img.shields.io/github/workflow/status/jarnsida/OzonIMDG_Case )
+![Github CI/CD](https://img.shields.io/github/workflow/status/jarnsida/OzonIMDG_Case/Go)
 ![Go Report](https://goreportcard.com/badge/github.com/jarnsida/OzonIMDG_Case )
 ![Repository Top Language](https://img.shields.io/github/languages/top/jarnsida/OzonIMDG_Case )
 ![Scrutinizer Code Quality](https://img.shields.io/scrutinizer/quality/g/jarnsida/OzonIMDG_Case/main)
