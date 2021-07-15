@@ -1,0 +1,1 @@
+Simple IMDG service for Ozon Fintech internship
