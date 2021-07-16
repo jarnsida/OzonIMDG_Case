@@ -23,9 +23,9 @@ func run() error {
 	// config set
 	//	cfg := config.Get()
 
-	stop := make(chan os.Signal, 2)
+	stop := make(chan os.Signal, 1)
 
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGTSTP)
 
 	srv := server.NewServer()
 
