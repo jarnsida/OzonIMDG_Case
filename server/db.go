@@ -8,8 +8,8 @@ import (
 )
 
 type memoryDB struct {
-	items map[string]string
 	mu    sync.RWMutex
+	items map[string]string
 }
 
 func newDB() memoryDB {
@@ -44,13 +44,19 @@ func (m *memoryDB) delete(key string) {
 	delete(m.items, key)
 }
 
+func (m *memoryDB) count() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.items)
+}
+
 func (m *memoryDB) save() {
 	f, err := os.Create("./store/db.json")
 	if err != nil {
 		fmt.Println("не удалось создать файл", err.Error())
-	}
-	if err := json.NewEncoder(f).Encode(m.items); err != nil {
+	} else if err := json.NewEncoder(f).Encode(m.items); err != nil {
 		fmt.Println("не удалось закодировать", err.Error())
+	} else {
+		fmt.Println("успешное сохранение db в файл")
 	}
-	fmt.Println("успешное сохранение db в файл")
 }

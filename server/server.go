@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -21,10 +22,16 @@ type Server struct {
 func NewServer() *Server {
 	//cfg := config.Get()
 
-	l, err := net.Listen("tcp", ":8080") //!заменить порт на порт из конфига
+	laddr, err := net.ResolveTCPAddr("tcp", ":8080")
 	if err != nil {
 		log.Fatal("Неудалось создать подключение ", err.Error())
 	}
+
+	l, err := net.ListenTCP("tcp", laddr) //!заменить порт на порт из конфига
+	if err != nil {
+		log.Fatal("Неудалось создать подключение ", err.Error())
+	}
+
 	srv := &Server{
 		listener:         l,
 		quit:             make(chan struct{}),
@@ -98,9 +105,11 @@ func (srv *Server) handleConn(conn net.Conn) {
 		values := strings.Split(l, " ")
 
 		switch {
+
 		case len(values) == 3 && values[0] == "set":
 			srv.db.set(values[1], values[2])
 			write(conn, "OK")
+
 		case len(values) == 2 && values[0] == "get":
 			k := values[1]
 			val, found := srv.db.get(k)
@@ -109,16 +118,22 @@ func (srv *Server) handleConn(conn net.Conn) {
 			} else {
 				write(conn, val)
 			}
+
 		case len(values) == 2 && values[0] == "delete":
 			srv.db.delete(values[1])
 			write(conn, "OK")
 
+		case len(values) == 1 && values[0] == "count":
+			k := srv.db.count()
+			write(conn, strconv.Itoa(k))
+
 		case len(values) == 1 && values[0] == "exit":
 			if err := conn.Close(); err != nil {
-				fmt.Println("could not close connection", err.Error())
+				fmt.Println("Невозможно завершить соединение", err.Error())
 			}
+
 		default:
-			write(conn, fmt.Sprintf("UNKNOWN: %s", l))
+			write(conn, fmt.Sprintf("UNKNOWN command: %s", l))
 		}
 	}
 }
