@@ -22,5 +22,6 @@ ____
 - [X] Users connect/act/disconect
 - [X] Data consistency (Mutex)
 - [X] Graceful Shutdown with data beckup 
+- [X] set/get/delete/count operations defined for [string]string
 - [ ] соблюдение ограничения на размер базы (по объему, задаваемый из конфига)
 - [ ] тестовый пример: клиент, пишущий и читающий из хранилища
