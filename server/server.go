@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jarsida/OzonIMDG_Case/service"
 )
 
 type Server struct {
@@ -100,16 +102,19 @@ func write(conn net.Conn, s string) {
 
 func (srv *Server) handleConn(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
+	mem := service.NewMonitor()
 	for scanner.Scan() {
 		l := strings.ToLower(strings.TrimSpace(scanner.Text()))
 		values := strings.Split(l, " ")
 
 		switch {
 
+		// Сервис set записывает новую пару ключ:значение
 		case len(values) == 3 && values[0] == "set":
 			srv.db.set(values[1], values[2])
 			write(conn, "OK")
 
+		// Сервис get выводит значение записи с указанным ключом
 		case len(values) == 2 && values[0] == "get":
 			k := values[1]
 			val, found := srv.db.get(k)
@@ -119,14 +124,21 @@ func (srv *Server) handleConn(conn net.Conn) {
 				write(conn, val)
 			}
 
+		// Сервис delete удлаяет запись с указанным ключом
 		case len(values) == 2 && values[0] == "delete":
 			srv.db.delete(values[1])
 			write(conn, "OK")
 
+		// Сервис count выводит количество записей в базе
 		case len(values) == 1 && values[0] == "count":
 			k := srv.db.count()
 			write(conn, strconv.Itoa(k))
 
+		// Сервис memstats выводит информацию о состоянии памяти
+		case len(values) == 1 && values[0] == "memstats":
+			k := mem.Get()
+			write(conn, k)
+		// Сервис exit отключает пользователя
 		case len(values) == 1 && values[0] == "exit":
 			if err := conn.Close(); err != nil {
 				fmt.Println("Невозможно завершить соединение", err.Error())
