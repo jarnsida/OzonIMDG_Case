@@ -133,7 +133,7 @@ func (srv *Server) handleConn(conn net.Conn) {
 			}
 
 		default:
-			write(conn, fmt.Sprintf("UNKNOWN command: %s", l))
+			write(conn, fmt.Sprintf("UNKNOWN command: %s \n Supported commands: get, set, delete, count, exit", l))
 		}
 	}
 }
