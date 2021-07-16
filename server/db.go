@@ -13,7 +13,7 @@ type memoryDB struct {
 }
 
 func newDB() memoryDB {
-	f, err := os.Open("db.json")
+	f, err := os.Open("./store/db.json")
 	if err != nil {
 		return memoryDB{items: map[string]string{}}
 	}
@@ -45,7 +45,7 @@ func (m *memoryDB) delete(key string) {
 }
 
 func (m *memoryDB) save() {
-	f, err := os.Create("db.json")
+	f, err := os.Create("./store/db.json")
 	if err != nil {
 		fmt.Println("не удалось создать файл", err.Error())
 	}
