@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
+	"time"
 )
 
 type memoryDB struct {
@@ -45,13 +47,27 @@ func (m *memoryDB) delete(key string) {
 }
 
 func (m *memoryDB) count() int {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+
 	return len(m.items)
 }
 
 func (m *memoryDB) save() {
 	f, err := os.Create("./store/db.json")
+	if err != nil {
+		fmt.Println("не удалось создать файл", err.Error())
+	} else if err := json.NewEncoder(f).Encode(m.items); err != nil {
+		fmt.Println("не удалось закодировать", err.Error())
+	} else {
+		fmt.Println("успешное сохранение db в файл")
+	}
+}
+
+func (m *memoryDB) saveBU() {
+	t := time.Now() //It will return time.Time object with current timestamp
+
+	tUnixMilli := strconv.FormatInt(int64(time.Nanosecond)*t.UnixNano()/int64(time.Millisecond), 10)
+
+	f, err := os.Create("./store/db" + tUnixMilli + ".json")
 	if err != nil {
 		fmt.Println("не удалось создать файл", err.Error())
 	} else if err := json.NewEncoder(f).Encode(m.items); err != nil {

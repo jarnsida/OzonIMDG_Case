@@ -21,7 +21,15 @@ ____
 - [X] TCP(telnet) server launch
 - [X] Users connect/act/disconect
 - [X] Data consistency (Mutex)
-- [X] Graceful Shutdown with data beckup 
+- [X] Graceful Shutdown with data backup 
 - [X] set/get/delete/count operations defined for [string]string
 - [ ] соблюдение ограничения на размер базы (по объему, задаваемый из конфига)
 - [ ] тестовый пример: клиент, пишущий и читающий из хранилища
+
+## 2 этап решения
+
+
+## Запуск работы программы
+```
+source run.sh PORT
+````

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jarsida/OzonIMDG_Case/config"
 	"github.com/jarsida/OzonIMDG_Case/service"
 )
 
@@ -17,14 +18,14 @@ type Server struct {
 	quit             chan struct{}
 	exited           chan struct{}
 	db               memoryDB
-	connections      map[int]net.Conn
+	connections      map[int]net.TCPConn
 	connCloseTimeout time.Duration
 }
 
 func NewServer() *Server {
-	//cfg := config.Get()
+	cfg := config.Get()
 
-	laddr, err := net.ResolveTCPAddr("tcp", ":8080")
+	laddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":"+cfg.IMDBPort))
 	if err != nil {
 		log.Fatal("Неудалось создать подключение ", err.Error())
 	}
@@ -39,8 +40,8 @@ func NewServer() *Server {
 		quit:             make(chan struct{}),
 		exited:           make(chan struct{}),
 		db:               newDB(),
-		connections:      map[int]net.Conn{},
-		connCloseTimeout: 4 * time.Second,
+		connections:      map[int]net.TCPConn{},
+		connCloseTimeout: time.Duration(cfg.ConnCloseTimeout) * time.Second,
 	}
 	go srv.serve()
 	return srv
@@ -65,6 +66,7 @@ func (srv *Server) serve() {
 			}
 			close(srv.exited)
 			return
+
 		default:
 			tcpListener := srv.listener.(*net.TCPListener)
 			err := tcpListener.SetDeadline(time.Now().Add(2 * time.Second))
@@ -72,7 +74,7 @@ func (srv *Server) serve() {
 				fmt.Println("Не удалось установить listener deadline", err.Error())
 			}
 
-			conn, err := tcpListener.Accept()
+			conn, err := tcpListener.AcceptTCP()
 			if oppErr, ok := err.(*net.OpError); ok && oppErr.Timeout() {
 				continue
 			}
@@ -80,11 +82,11 @@ func (srv *Server) serve() {
 				fmt.Println("Не удалось создать соединение", err.Error())
 			}
 
-			write(conn, "Добро пожаловть в OzonIMDB server")
-			srv.connections[id] = conn
+			write(*conn, "Добро пожаловть в OzonIMDB server")
+			srv.connections[id] = *conn
 			go func(connID int) {
 				fmt.Println("Клиент с id", connID, "подключён")
-				srv.handleConn(conn)
+				srv.handleConn(*conn)
 				delete(srv.connections, connID)
 				fmt.Println("Клиент с id", connID, "отключён")
 			}(id)
@@ -93,16 +95,16 @@ func (srv *Server) serve() {
 	}
 }
 
-func write(conn net.Conn, s string) {
-	_, err := fmt.Fprintf(conn, "%s\n-> ", s)
+func write(conn net.TCPConn, s string) {
+	_, err := fmt.Fprintf(&conn, "%s\n-> ", s)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func (srv *Server) handleConn(conn net.Conn) {
-	scanner := bufio.NewScanner(conn)
-	mem := service.NewMonitor()
+func (srv *Server) handleConn(conn net.TCPConn) {
+	scanner := bufio.NewScanner(&conn)
+
 	for scanner.Scan() {
 		l := strings.ToLower(strings.TrimSpace(scanner.Text()))
 		values := strings.Split(l, " ")
@@ -136,9 +138,11 @@ func (srv *Server) handleConn(conn net.Conn) {
 
 		// Сервис memstats выводит информацию о состоянии памяти
 		case len(values) == 1 && values[0] == "memstats":
+			mem := service.NewMonitor()
 			k := mem.Get()
 			write(conn, k)
-		// Сервис exit отключает пользователя
+
+			// Сервис exit отключает пользователя
 		case len(values) == 1 && values[0] == "exit":
 			if err := conn.Close(); err != nil {
 				fmt.Println("Невозможно завершить соединение", err.Error())
@@ -166,6 +170,7 @@ func (srv *Server) closeConnections() {
 	}
 }
 
+//Graceful Shutdown with data backup
 func (srv *Server) Stop() {
 	fmt.Println("Останавливаю сервер БД")
 	close(srv.quit)

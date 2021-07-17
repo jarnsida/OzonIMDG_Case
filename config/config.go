@@ -19,7 +19,7 @@ type Config struct {
 	MaxMemory        string  `envconfig:"MAX_MEMORY"`
 	FilePath         string  `envconfig:"FILE_PATH"`
 	IMDBPort         string  `envconfig:"PORT"`
-	ConnCloseTimeout float64 `envconfig:"connCloseTO"`
+	ConnCloseTimeout float64 `envconfig:"CON_CLOSE_TO"`
 }
 
 // Чтение конфигурации из среды. Once.

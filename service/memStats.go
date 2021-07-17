@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
-	"sync"
 )
 
 type Monitor struct {
-	mu2 sync.RWMutex
 	Alloc,
 	TotalAlloc,
 	Sys,
@@ -21,7 +19,8 @@ type Monitor struct {
 	NumGoroutine int
 }
 
-func NewMonitor() *Monitor {
+// Returns curent memory stats
+func NewMonitor() Monitor {
 	var m Monitor
 	var rtm runtime.MemStats
 	//	var interval = time.Duration(duration) * time.Second
@@ -46,12 +45,10 @@ func NewMonitor() *Monitor {
 	m.PauseTotalNs = rtm.PauseTotalNs
 	m.NumGC = rtm.NumGC
 
-	return &m
+	return m
 }
 
 func (mem *Monitor) Get() string {
-	mem.mu2.RLock()
-	defer mem.mu2.RUnlock()
 	// Just encode to json
 	b, err := json.Marshal(mem)
 	if err != nil {
