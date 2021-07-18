@@ -6,6 +6,7 @@ import (
 	"runtime"
 )
 
+//Monitor структура данных о состоянии памяти
 type Monitor struct {
 	Alloc,
 	TotalAlloc,
@@ -19,7 +20,7 @@ type Monitor struct {
 	NumGoroutine int
 }
 
-// Returns curent memory stats
+// NewMonitor создаёт экземпляр структуры Monitor с данными на настоящй момент
 func NewMonitor() Monitor {
 	var m Monitor
 	var rtm runtime.MemStats
@@ -48,6 +49,7 @@ func NewMonitor() Monitor {
 	return m
 }
 
+//Get формирует JSON строку для выдачи данных о состоянии памяти
 func (mem *Monitor) Get() string {
 	// Just encode to json
 	b, err := json.Marshal(mem)

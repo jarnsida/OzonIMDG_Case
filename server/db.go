@@ -46,8 +46,13 @@ func (m *memoryDB) delete(key string) {
 	delete(m.items, key)
 }
 
-func (m *memoryDB) count() int {
+func (m *memoryDB) clean() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.items = make(map[string]string)
+}
 
+func (m *memoryDB) count() int {
 	return len(m.items)
 }
 
@@ -58,11 +63,11 @@ func (m *memoryDB) save() {
 	} else if err := json.NewEncoder(f).Encode(m.items); err != nil {
 		fmt.Println("не удалось закодировать", err.Error())
 	} else {
-		fmt.Println("успешное сохранение db в файл")
+		fmt.Println("Успешно сохранено ", len(m.items), "записей в файл")
 	}
 }
 
-func (m *memoryDB) saveBU() {
+func (m *memoryDB) backUp() {
 	t := time.Now() //It will return time.Time object with current timestamp
 
 	tUnixMilli := strconv.FormatInt(int64(time.Nanosecond)*t.UnixNano()/int64(time.Millisecond), 10)

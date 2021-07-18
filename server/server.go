@@ -13,6 +13,7 @@ import (
 	"github.com/jarsida/OzonIMDG_Case/service"
 )
 
+//Server type определяет тип данных TCP сервера
 type Server struct {
 	listener         net.Listener
 	quit             chan struct{}
@@ -22,6 +23,7 @@ type Server struct {
 	connCloseTimeout time.Duration
 }
 
+//NewServer запускает сервер в горутине
 func NewServer() *Server {
 	cfg := config.Get()
 
@@ -43,6 +45,7 @@ func NewServer() *Server {
 		connections:      map[int]net.TCPConn{},
 		connCloseTimeout: time.Duration(cfg.ConnCloseTimeout) * time.Second,
 	}
+	//Запуск экземпляра в горутине
 	go srv.serve()
 	return srv
 }
@@ -84,6 +87,7 @@ func (srv *Server) serve() {
 
 			write(*conn, "Добро пожаловть в OzonIMDB server")
 			srv.connections[id] = *conn
+
 			go func(connID int) {
 				fmt.Println("Клиент с id", connID, "подключён")
 				srv.handleConn(*conn)
@@ -95,6 +99,7 @@ func (srv *Server) serve() {
 	}
 }
 
+//write описывает функцию формирования сообщение пользователю о результате запроса
 func write(conn net.TCPConn, s string) {
 	_, err := fmt.Fprintf(&conn, "%s\n-> ", s)
 	if err != nil {
@@ -102,6 +107,7 @@ func write(conn net.TCPConn, s string) {
 	}
 }
 
+//hendleConn описывает команды базы
 func (srv *Server) handleConn(conn net.TCPConn) {
 	scanner := bufio.NewScanner(&conn)
 
@@ -148,8 +154,17 @@ func (srv *Server) handleConn(conn net.TCPConn) {
 				fmt.Println("Невозможно завершить соединение", err.Error())
 			}
 
+		case len(values) == 1 && values[0] == "clean":
+			srv.db.clean()
+			write(conn, "База обнулена")
+
+		case len(values) == 1 && values[0] == "backup":
+			srv.db.backUp()
+			write(conn, "База сохранена во внешний файл и очищена из памяти")
+			srv.db.clean()
+
 		default:
-			write(conn, fmt.Sprintf("UNKNOWN command: %s \n Supported commands: get, set, delete, count, memstats, exit", l))
+			write(conn, fmt.Sprintf("UNKNOWN command: %s \n Supported commands: get, set, delete, count, memstats,clean, exit", l))
 		}
 	}
 }
@@ -170,7 +185,7 @@ func (srv *Server) closeConnections() {
 	}
 }
 
-//Graceful Shutdown with data backup
+//Stop Graceful Shutdown with data backup
 func (srv *Server) Stop() {
 	fmt.Println("Останавливаю сервер БД")
 	close(srv.quit)

@@ -18,7 +18,7 @@ var (
 	once   sync.Once
 )
 
-// Чтение конфигурации из среды. Единожды.
+//Get Чтение конфигурации из среды. Единожды.
 func Get() *Logger {
 	once.Do(func() {
 		zeroLogger := zerolog.New(os.Stderr).With().Timestamp().Logger()

@@ -14,6 +14,7 @@ var (
 	once   sync.Once
 )
 
+//Config тип определяет параметры среды
 type Config struct {
 	LogLevel         string  `envconfig:"LOG_LEVEL"`
 	MaxMemory        string  `envconfig:"MAX_MEMORY"`
@@ -22,7 +23,7 @@ type Config struct {
 	ConnCloseTimeout float64 `envconfig:"CON_CLOSE_TO"`
 }
 
-// Чтение конфигурации из среды. Once.
+//Get метод. Чтение конфигурации из среды. Once.
 func Get() *Config {
 	once.Do(func() {
 		err := envconfig.Process("", &config)
