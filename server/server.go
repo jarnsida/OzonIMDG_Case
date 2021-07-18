@@ -107,7 +107,7 @@ func write(conn net.TCPConn, s string) {
 	}
 }
 
-//hendleConn описывает команды базы
+//handleConn сеанс соединения клиента с базой
 func (srv *Server) handleConn(conn net.TCPConn) {
 	scanner := bufio.NewScanner(&conn)
 
@@ -164,7 +164,7 @@ func (srv *Server) handleConn(conn net.TCPConn) {
 			srv.db.clean()
 
 		default:
-			write(conn, fmt.Sprintf("UNKNOWN command: %s \n Supported commands: get, set, delete, count, memstats,clean, exit", l))
+			write(conn, fmt.Sprintf("UNKNOWN command: %s \n Supported commands: get, set, delete, count, memstats,clean,backup, exit", l))
 		}
 	}
 }
