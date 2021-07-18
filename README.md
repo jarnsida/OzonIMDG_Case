@@ -1,5 +1,55 @@
 Simple IMDG service for Ozon Fintech internship
 
+## `DB Features`
+
+- set key 
+- get key 
+- delete key
+- count number of DB elements
+- memstats
+- clean DB
+- backup (save JSON to file)
+- manage client connections
+- warn clients before closing
+- backup memory records before exiting
+
+## `How to Test`
+
+#### `server`
+```bash
+source run.sh
+```
+
+#### `client`
+```bash
+telnet localhost 8080
+
+# set a key in memory db
+set key val
+
+# get a key from the memory db
+get key
+
+# delete a key from the memory db
+delete key
+
+# count shows number of db elements
+count
+
+# clean nil db
+clean
+
+# backup saves db to file as JSON
+backup
+
+# memstats shows allocaed memory
+memstats
+
+#exit disconnect user
+exit
+```
+
+
 ## :scroll: Задача    
 ### Написать реализацию простого in-memory key-value хранилища (аля redis).
 Требования:
@@ -28,8 +78,10 @@ ____
 
 ## 2 этап решения
 
+- Рефакторинг для более эффектиной работы TTL и элементов разних типов.
+- Автоматический клиент с заданными пармаетрами подключений и запросов
 
 ## Запуск работы программы
 ```
-source run.sh PORT
+source run.sh (PORT) (MAX_VOLUME) (TIMEOUT)
 ````
