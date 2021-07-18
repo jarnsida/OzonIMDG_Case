@@ -19,6 +19,7 @@ type Server struct {
 	quit             chan struct{}
 	exited           chan struct{}
 	db               memoryDB
+	ttl              timeToLive
 	connections      map[int]net.TCPConn
 	connCloseTimeout time.Duration
 }
@@ -42,6 +43,7 @@ func NewServer() *Server {
 		quit:             make(chan struct{}),
 		exited:           make(chan struct{}),
 		db:               newDB(),
+		ttl:              newTTLdb(),
 		connections:      map[int]net.TCPConn{},
 		connCloseTimeout: time.Duration(cfg.ConnCloseTimeout) * time.Second,
 	}
@@ -56,6 +58,8 @@ func (srv *Server) serve() {
 	fmt.Println("Ожидаю подключение клиентов")
 	for {
 		select {
+
+		// Отключение сервера при получении сигнала Ctrl+C
 		case <-srv.quit:
 			fmt.Println("Завершение работы сервера БД")
 			err := srv.listener.Close()
@@ -70,6 +74,7 @@ func (srv *Server) serve() {
 			close(srv.exited)
 			return
 
+		//Работа сервера
 		default:
 			tcpListener := srv.listener.(*net.TCPListener)
 			err := tcpListener.SetDeadline(time.Now().Add(2 * time.Second))
@@ -77,6 +82,7 @@ func (srv *Server) serve() {
 				fmt.Println("Не удалось установить listener deadline", err.Error())
 			}
 
+			//Приём вызова соединения
 			conn, err := tcpListener.AcceptTCP()
 			if oppErr, ok := err.(*net.OpError); ok && oppErr.Timeout() {
 				continue
@@ -88,6 +94,7 @@ func (srv *Server) serve() {
 			write(*conn, "Добро пожаловть в OzonIMDB server")
 			srv.connections[id] = *conn
 
+			//Счётчик пользователей в горутине
 			go func(connID int) {
 				fmt.Println("Клиент с id", connID, "подключён")
 				srv.handleConn(*conn)
@@ -95,6 +102,7 @@ func (srv *Server) serve() {
 				fmt.Println("Клиент с id", connID, "отключён")
 			}(id)
 			id++
+
 		}
 	}
 }
@@ -111,6 +119,7 @@ func write(conn net.TCPConn, s string) {
 func (srv *Server) handleConn(conn net.TCPConn) {
 	scanner := bufio.NewScanner(&conn)
 
+	//Приём запроса пользователя
 	for scanner.Scan() {
 		l := strings.ToLower(strings.TrimSpace(scanner.Text()))
 		values := strings.Split(l, " ")
@@ -120,6 +129,12 @@ func (srv *Server) handleConn(conn net.TCPConn) {
 		// Сервис set записывает новую пару ключ:значение
 		case len(values) == 3 && values[0] == "set":
 			srv.db.set(values[1], values[2])
+			write(conn, "OK")
+
+			// Сервис set записывает новую пару ключ:значение
+		case len(values) == 4 && values[0] == "set+ttl":
+			srv.db.set(values[1], values[2])
+			srv.ttl.setTTL(values[1], values[3])
 			write(conn, "OK")
 
 		// Сервис get выводит значение записи с указанным ключом
@@ -164,7 +179,7 @@ func (srv *Server) handleConn(conn net.TCPConn) {
 			srv.db.clean()
 
 		default:
-			write(conn, fmt.Sprintf("UNKNOWN command: %s \n Supported commands: get, set, delete, count, memstats,clean,backup, exit", l))
+			write(conn, fmt.Sprintf("UNKNOWN command: %s \n Supported commands: get, set, set+ttl, delete, count,\n memstats, clean, backup, exit", l))
 		}
 	}
 }

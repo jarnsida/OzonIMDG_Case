@@ -14,23 +14,31 @@ type memoryDB struct {
 	items map[string]string
 }
 
+//newDB инициализирует базу с восстановлением из JSON
+
 func newDB() memoryDB {
+	
+	//Open saved JSON
 	f, err := os.Open("./store/db.json")
 	if err != nil {
 		return memoryDB{items: map[string]string{}}
 	}
+	
 	items := map[string]string{}
+	//Try to decode JSON	
 	if err := json.NewDecoder(f).Decode(&items); err != nil {
 		fmt.Println("не удалось декодировать файл", err.Error())
 		return memoryDB{items: map[string]string{}}
 	}
+	//If replication failed make clean DB
+	
 	return memoryDB{items: items}
 }
 
 func (m *memoryDB) set(key, value string) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	m.items[key] = value
+	m.mu.Unlock()
 }
 
 func (m *memoryDB) get(key string) (string, bool) {
