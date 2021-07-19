@@ -23,7 +23,7 @@ func run() error {
 	stop := make(chan os.Signal, 1)
 
 	// Catch Ctrl+C, Ctrl+Z commands to stop server
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGTSTP)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT /*, syscall.SIGTSTP*/)
 
 	//Start server
 	srv := server.NewServer()
