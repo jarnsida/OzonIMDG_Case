@@ -20,20 +20,24 @@ type Server struct {
 	exited           chan struct{}
 	db               memoryDB
 	ttl              timeToLive
-	connections      map[int]net.TCPConn
+	connections      map[int]net.Conn
 	connCloseTimeout time.Duration
 }
 
 //NewServer запускает сервер в горутине
 func NewServer() *Server {
+
+	// Загрузка конфига
 	cfg := config.Get()
 
+	//Резервация порта
 	laddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":"+cfg.IMDBPort))
 	if err != nil {
 		log.Fatal("Неудалось создать подключение ", err.Error())
 	}
 
-	l, err := net.ListenTCP("tcp", laddr) //!заменить порт на порт из конфига
+	//Слушать порт
+	l, err := net.ListenTCP("tcp", laddr)
 	if err != nil {
 		log.Fatal("Неудалось создать подключение ", err.Error())
 	}
@@ -44,7 +48,7 @@ func NewServer() *Server {
 		exited:           make(chan struct{}),
 		db:               newDB(),
 		ttl:              newTTLdb(),
-		connections:      map[int]net.TCPConn{},
+		connections:      map[int]net.Conn{},
 		connCloseTimeout: time.Duration(cfg.ConnCloseTimeout) * time.Second,
 	}
 	//Запуск экземпляра в горутине
@@ -91,13 +95,16 @@ func (srv *Server) serve() {
 				fmt.Println("Не удалось создать соединение", err.Error())
 			}
 
-			write(*conn, "Добро пожаловть в OzonIMDB server")
-			srv.connections[id] = *conn
+			conn.SetReadBuffer(512 * 1024)
+			conn.SetWriteBuffer(2 * 1024 * 1024)
+
+			write(conn, "Добро пожаловть в OzonIMDB server")
+			srv.connections[id] = conn
 
 			//Счётчик пользователей в горутине
 			go func(connID int) {
 				fmt.Println("Клиент с id", connID, "подключён")
-				srv.handleConn(*conn)
+				srv.handleConn(conn)
 				delete(srv.connections, connID)
 				fmt.Println("Клиент с id", connID, "отключён")
 			}(id)
@@ -108,16 +115,16 @@ func (srv *Server) serve() {
 }
 
 //write описывает функцию формирования сообщение пользователю о результате запроса
-func write(conn net.TCPConn, s string) {
-	_, err := fmt.Fprintf(&conn, "%s\n-> ", s)
+func write(conn net.Conn, s string) {
+	_, err := fmt.Fprintf(conn, "%s\n-> ", s)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 //handleConn сеанс соединения клиента с базой
-func (srv *Server) handleConn(conn net.TCPConn) {
-	scanner := bufio.NewScanner(&conn)
+func (srv *Server) handleConn(conn net.Conn) {
+	scanner := bufio.NewScanner(conn)
 
 	//Приём запроса пользователя
 	for scanner.Scan() {

@@ -85,3 +85,5 @@ ____
 ```
 source run.sh (PORT) (MAX_VOLUME) (TIMEOUT)
 ````
+
+<img src="./img/make-run.png">

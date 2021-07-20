@@ -1,1 +1,3 @@
 /store/*.json
+userClient.go
+userClient2.go
