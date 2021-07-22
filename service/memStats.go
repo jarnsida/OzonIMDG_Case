@@ -33,9 +33,9 @@ func NewMonitor() Monitor {
 	m.NumGoroutine = runtime.NumGoroutine()
 
 	// Misc memory stats
-	m.Alloc = rtm.Alloc / 1024
-	m.TotalAlloc = rtm.TotalAlloc / 1024
-	m.Sys = rtm.Sys / 1024
+	m.Alloc = rtm.Alloc
+	m.TotalAlloc = rtm.TotalAlloc
+	m.Sys = rtm.Sys
 	m.Mallocs = rtm.Mallocs
 	m.Frees = rtm.Frees
 
