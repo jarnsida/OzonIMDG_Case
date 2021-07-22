@@ -17,7 +17,7 @@ var (
 //Config тип определяет параметры среды
 type Config struct {
 	LogLevel         string  `envconfig:"LOG_LEVEL"`
-	MaxMemory        string  `envconfig:"MAX_MEMORY"`
+	MaxMemory        int     `envconfig:"MAX_MEMORY"`
 	FilePath         string  `envconfig:"FILE_PATH"`
 	IMDBPort         string  `envconfig:"PORT"`
 	ConnCloseTimeout float64 `envconfig:"CON_CLOSE_TO"`

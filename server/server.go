@@ -124,6 +124,7 @@ func write(conn net.Conn, s string) {
 
 //handleConn сеанс соединения клиента с базой
 func (srv *Server) handleConn(conn net.Conn) {
+	cfg := config.Get()
 	scanner := bufio.NewScanner(conn)
 
 	//Приём запроса пользователя
@@ -131,62 +132,105 @@ func (srv *Server) handleConn(conn net.Conn) {
 		l := strings.ToLower(strings.TrimSpace(scanner.Text()))
 		values := strings.Split(l, " ")
 
-		switch {
+		//Ограничение работы в случае привышения объёма
 
-		// Сервис set записывает новую пару ключ:значение
-		case len(values) == 3 && values[0] == "set":
-			srv.db.set(values[1], values[2])
-			write(conn, "OK")
+		if len(srv.db.items) > cfg.MaxMemory {
+			write(conn, fmt.Sprintf("DB Size excides  %d \n Supported commands shorted: delete, count,\n memstats, clean, backup, exit", cfg.MaxMemory))
+			switch {
+			// Сервис delete удлаяет запись с указанным ключом
+			case len(values) == 2 && values[0] == "delete":
+				srv.db.delete(values[1])
+				write(conn, "OK")
+
+				// Сервис count выводит количество записей в базе
+			case len(values) == 1 && values[0] == "count":
+				k := srv.db.count()
+				write(conn, strconv.Itoa(k))
+
+				// Сервис memstats выводит информацию о состоянии памяти
+			case len(values) == 1 && values[0] == "memstats":
+				mem := service.NewMonitor()
+				k := mem.Get()
+				write(conn, k)
+
+				// Сервис exit отключает пользователя
+			case len(values) == 1 && values[0] == "exit":
+				if err := conn.Close(); err != nil {
+					fmt.Println("Невозможно завершить соединение", err.Error())
+				}
+
+			case len(values) == 1 && values[0] == "clean":
+				srv.db.clean()
+				write(conn, "База обнулена")
+
+			case len(values) == 1 && values[0] == "backup":
+				srv.db.backUp()
+				write(conn, "База сохранена во внешний файл и очищена из памяти")
+				srv.db.clean()
+			default:
+				write(conn, fmt.Sprintf("UNKNOWN command: %s \n Supported commands: delete, count,\n memstats, clean, backup, exit", l))
+
+			}
+
+		} else {
+
+			switch {
 
 			// Сервис set записывает новую пару ключ:значение
-		case len(values) == 4 && values[0] == "set+ttl":
-			srv.db.set(values[1], values[2])
-			srv.ttl.setTTL(values[1], values[3])
-			write(conn, "OK")
+			case len(values) == 3 && values[0] == "set":
+				srv.db.set(values[1], values[2])
+				write(conn, "OK")
 
-		// Сервис get выводит значение записи с указанным ключом
-		case len(values) == 2 && values[0] == "get":
-			k := values[1]
-			val, found := srv.db.get(k)
-			if !found {
-				write(conn, fmt.Sprintf("key %s not found", k))
-			} else {
-				write(conn, val)
+				// Сервис set записывает новую пару ключ:значение
+			case len(values) == 4 && values[0] == "set+ttl":
+				srv.db.set(values[1], values[2])
+				srv.ttl.setTTL(values[1], values[3])
+				write(conn, "OK")
+
+			// Сервис get выводит значение записи с указанным ключом
+			case len(values) == 2 && values[0] == "get":
+				k := values[1]
+				val, found := srv.db.get(k)
+				if !found {
+					write(conn, fmt.Sprintf("key %s not found", k))
+				} else {
+					write(conn, val)
+				}
+
+			// Сервис delete удлаяет запись с указанным ключом
+			case len(values) == 2 && values[0] == "delete":
+				srv.db.delete(values[1])
+				write(conn, "OK")
+
+			// Сервис count выводит количество записей в базе
+			case len(values) == 1 && values[0] == "count":
+				k := srv.db.count()
+				write(conn, strconv.Itoa(k))
+
+			// Сервис memstats выводит информацию о состоянии памяти
+			case len(values) == 1 && values[0] == "memstats":
+				mem := service.NewMonitor()
+				k := mem.Get()
+				write(conn, k)
+
+				// Сервис exit отключает пользователя
+			case len(values) == 1 && values[0] == "exit":
+				if err := conn.Close(); err != nil {
+					fmt.Println("Невозможно завершить соединение", err.Error())
+				}
+
+			case len(values) == 1 && values[0] == "clean":
+				srv.db.clean()
+				write(conn, "База обнулена")
+
+			case len(values) == 1 && values[0] == "backup":
+				srv.db.backUp()
+				write(conn, "База сохранена во внешний файл и очищена из памяти")
+				srv.db.clean()
+
+			default:
+				write(conn, fmt.Sprintf("UNKNOWN command: %s \n Supported commands: get, set, set+ttl, delete, count,\n memstats, clean, backup, exit", l))
 			}
-
-		// Сервис delete удлаяет запись с указанным ключом
-		case len(values) == 2 && values[0] == "delete":
-			srv.db.delete(values[1])
-			write(conn, "OK")
-
-		// Сервис count выводит количество записей в базе
-		case len(values) == 1 && values[0] == "count":
-			k := srv.db.count()
-			write(conn, strconv.Itoa(k))
-
-		// Сервис memstats выводит информацию о состоянии памяти
-		case len(values) == 1 && values[0] == "memstats":
-			mem := service.NewMonitor()
-			k := mem.Get()
-			write(conn, k)
-
-			// Сервис exit отключает пользователя
-		case len(values) == 1 && values[0] == "exit":
-			if err := conn.Close(); err != nil {
-				fmt.Println("Невозможно завершить соединение", err.Error())
-			}
-
-		case len(values) == 1 && values[0] == "clean":
-			srv.db.clean()
-			write(conn, "База обнулена")
-
-		case len(values) == 1 && values[0] == "backup":
-			srv.db.backUp()
-			write(conn, "База сохранена во внешний файл и очищена из памяти")
-			srv.db.clean()
-
-		default:
-			write(conn, fmt.Sprintf("UNKNOWN command: %s \n Supported commands: get, set, set+ttl, delete, count,\n memstats, clean, backup, exit", l))
 		}
 	}
 }
